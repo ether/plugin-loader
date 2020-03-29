@@ -9,9 +9,9 @@ var jsonDiff = require('json-diff');
 const ignoredPlugins = {
   'ep_etherpad-lite': true,
   'ep_imageconvert': true,
-  'ep_brightcolorpicker': true,
+/*  'ep_brightcolorpicker': true,
   'ep_historicalsearch': true,
-  'ep_simpletextsearch': true,
+  'ep_simpletextsearch': true,*/
 }
 
 /*
@@ -95,9 +95,9 @@ async function loadList() {
 }
 
 function loadPluginInfo(name) {
-console.log('Load info for: ' + name);
+//console.log('Load info for: ' + name);
   var options = {
-    url: 'https://www.npmjs.com/search/suggestions?q='+name,
+    url: 'https://registry.npmjs.com/'+name,
     json: true
   }
 
@@ -108,14 +108,17 @@ console.log('Load info for: ' + name);
         console.log(error, response);
         return reject();
       }
-      for (key in body) {
-        var package = body[key];
-        if (!package.name) {
-          console.log('Package has no name: ', package);
-        } else if (package.name.substring(0,3) == 'ep_') {
-          package.time = (new Date(package.date)).toISOString().split('T')[0];
-          plugins[package.name] = package;
-        }
+      var package = body;
+      if (!package.name) {
+        console.log('Package has no name: ', package);
+      } else if (package.name.substring(0,3) == 'ep_') {
+        plugins[package.name] = {
+          name: package.name,
+          description: package.description,
+          time: (new Date(package.time[package['dist-tags'].latest])).toISOString().split('T')[0],
+          version: package['dist-tags'].latest,
+          data: package,
+        };
       }
       resolve();
     });
@@ -123,11 +126,15 @@ console.log('Load info for: ' + name);
 }
 
 var saveData = function(data) {
-  let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.json');
+  let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.full.json');
   let persistedData = JSON.parse(rawdata);
 
   let persistedDataLength = Object.keys(persistedData).length;
   let newDataLength = Object.keys(data).length;
+
+  let simplePlugins = JSON.parse(JSON.stringify(data));
+  Object.keys(simplePlugins)
+    .forEach(key => delete simplePlugins[key]['data']);
 
   if (persistedDataLength <= newDataLength) {
     let diff = jsonDiff.diffString(persistedData, data);
@@ -136,7 +143,11 @@ var saveData = function(data) {
       console.log('new length: ' + newDataLength);
       console.log('Saving new plugins.json file');
       fs.writeFileSync("/var/www/etherpad-static/plugins-" + getCurrentDate() + '.json', rawdata);
-      fs.writeFileSync("/var/www/etherpad-static/plugins.json", JSON.stringify(data));
+      fs.writeFileSync("/var/www/etherpad-static/plugins.full.json", JSON.stringify(data));
+
+
+      fs.writeFileSync("/var/www/etherpad-static/plugins.new.json", JSON.stringify(simplePlugins));
+      fs.renameSync("/var/www/etherpad-static/plugins.new.json", "/var/www/etherpad-static/plugins.json");
     }
     return;
   }
@@ -157,8 +168,8 @@ function validJSON(string) {
 */
 
 
-var getCurrentDate = function(date) {
-    var d = new Date(date),
+var getCurrentDate = function() {
+    var d = new Date(),
         month = '' + (d.getMonth() + 1),
         day = '' + d.getDate(),
         year = d.getFullYear();
@@ -179,10 +190,10 @@ var randomProperty = function (obj) {
 
 
 async function main() {
-  let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.json');
+  let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.full.json');
   plugins = JSON.parse(rawdata);
 
-  let newPackageList = await loadList();
+  let newPackageList = await loadList().catch(function(error) { console.log(error); });
 
   for (let i=0; i < newPackageList.length; i++) {
     if (!(newPackageList[i] in plugins) && !(newPackageList[i] in ignoredPlugins)) {
@@ -191,7 +202,7 @@ async function main() {
     }
   }
 
-  for (let i=0; i < 20; i++) {
+  for (let i=0; i < 40; i++) {
     await loadPluginInfo(randomProperty(plugins));
   }
 
