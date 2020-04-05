@@ -76,18 +76,17 @@ console.log(lines);
 */
 
 
-const names = require("all-the-package-names");
-
-//var names = ['ep_message_all', 'ep_page_view'];
 async function loadList() {
+  let npmPackageList = fs.readFileSync(__dirname + '/_all_docs');
+  let packageList = JSON.parse(npmPackageList);
+
+  let packages = packageList.rows;
 
   let package_names = [];
-  for (let key in names) {
-  //names.forEach(function(name) {
-    if (names[key].substring(0,3) == 'ep_') {
-      package_names.push(names[key]);
-
-      //await loadPluginInfo(names[key]);
+  for (let key in packages) {
+    let name = packages[key].id;
+    if (name.substring(0,3) == 'ep_') {
+      package_names.push(name);
     }
   }
 
@@ -102,7 +101,7 @@ function loadPluginInfo(name) {
   }
 
   return new Promise(function (resolve, reject) {
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
     request(options, function(error, response, body) {
       if (error) {
         console.log(error, response);
@@ -114,7 +113,7 @@ function loadPluginInfo(name) {
       } else if (package.name.substring(0,3) == 'ep_') {
         plugins[package.name] = {
           name: package.name,
-          description: package.description,
+          description: '' + package.description,
           time: (new Date(package.time[package['dist-tags'].latest])).toISOString().split('T')[0],
           version: package['dist-tags'].latest,
           data: package,
@@ -202,7 +201,7 @@ async function main() {
     }
   }
 
-  for (let i=0; i < 40; i++) {
+  for (let i=0; i < 50; i++) {
     await loadPluginInfo(randomProperty(plugins));
   }
 
