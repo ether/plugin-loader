@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "json-diff": "^0.5.4",
+    "request": "^2.88.2"
+  }
+}

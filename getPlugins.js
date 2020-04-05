@@ -1,79 +1,16 @@
 // This script takes the npm cache and outputs etherpad plugins
 
 //var npm = require("npm");
-var request = require('request');
-var fs = require('fs');
-var cmd=require('node-cmd');
-var jsonDiff = require('json-diff');
+const request = require('request');
+const fs = require('fs');
+const jsonDiff = require('json-diff');
 
 const ignoredPlugins = {
   'ep_etherpad-lite': true,
   'ep_imageconvert': true,
-/*  'ep_brightcolorpicker': true,
-  'ep_historicalsearch': true,
-  'ep_simpletextsearch': true,*/
 }
 
-/*
-
-Run by doing:
-
-cd tools
-npm install npm
-node getPlugins.js > ../plugins.json
-
-*/
-
-/*
-npm.load({}, function (er) {
-  if (er) console.error(er);
-console.log(npm.commands);
-  npm.commands.search(['ep_'], function(er, results) {
-//    console.log(results);
-
-    var plugins = results;
-    if(er) console.error(er);
-    for (result in results){
-console.log(result);
-      // console.log(results[result].name.substring(0,3));
-      // Delete non plugins
-      if(results[result].name.substring(0,3) !== "ep_" || !results[result].description){
-        delete plugins[result];
-        console.log("deleting", result);
-      }
-    };
-    var pluginCount = Object.keys(plugins).length
-    if (pluginCount > 30) {
-      saveData(JSON.stringify(plugins));
-    } else {
-      console.log('plugin list too small: '+pluginCount);
-    }
-    //console.log(JSON.stringify(plugins));
-  })
-});
-*/
-
 var plugins = {};
-
-/*
-cmd.get('npm search --parseable=true etherpad', function(err, data, stderr) {
-  var lines = data.split(/\r?\n/);
-console.log(lines);
-
-  var done = 1;
-  for (var i=done; i < lines.length; i++) {
-    var line = lines[i];
-    var name = line.substr(0, line.indexOf('\t'));
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
-    loadPluginInfo(name, function() {
-      done++;
-      if (done == lines.length) {
-        saveData(JSON.stringify(plugins));
-      }
-    });
-  }
-});
-*/
 
 
 async function loadList() {
