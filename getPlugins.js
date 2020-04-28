@@ -13,23 +13,6 @@ const ignoredPlugins = {
 var plugins = {};
 
 
-async function loadList() {
-  let npmPackageList = fs.readFileSync(__dirname + '/_all_docs');
-  let packageList = JSON.parse(npmPackageList);
-
-  let packages = packageList.rows;
-
-  let package_names = [];
-  for (let key in packages) {
-    let name = packages[key].id;
-    if (name.substring(0,3) == 'ep_') {
-      package_names.push(name);
-    }
-  }
-
-  return package_names;
-}
-
 function loadPluginInfo(name) {
 //console.log('Load info for: ' + name);
   var options = {
@@ -150,15 +133,6 @@ var loadDownloadStats = function(pluginList) {
 async function main() {
   let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.full.json');
   plugins = JSON.parse(rawdata);
-
-  let newPackageList = await loadList().catch(function(error) { console.log(error); });
-
-  for (let i=0; i < newPackageList.length; i++) {
-    if (!(newPackageList[i] in plugins) && !(newPackageList[i] in ignoredPlugins)) {
-      console.log('new package: ' + newPackageList[i]);
-      await loadPluginInfo(newPackageList[i]);
-    }
-  }
 
   for (let i=0; i < 200; i++) {
     await loadPluginInfo(randomProperty(plugins));
