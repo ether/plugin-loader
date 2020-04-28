@@ -124,6 +124,28 @@ var randomProperty = function (obj) {
 };
 
 
+var loadDownloadStats = function(pluginList) {
+  var options = {
+    url: 'https://api.npmjs.org/downloads/point/last-month/'+pluginList.join(','),
+    json: true
+  }
+
+  return new Promise(function (resolve, reject) {
+    request(options, function(error, response, body) {
+      if (error) {
+        console.log(error, response);
+        return reject();
+      }
+
+      for (let i=0; i < pluginList.length; i++) {
+        plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+      }
+
+      resolve();
+    });
+  });
+
+};
 
 async function main() {
   let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.full.json');
@@ -138,8 +160,12 @@ async function main() {
     }
   }
 
-  for (let i=0; i < 50; i++) {
+  for (let i=0; i < 200; i++) {
     await loadPluginInfo(randomProperty(plugins));
+  }
+
+  for (let i=0; i < Object.keys(plugins).length; i+=100) {
+    await loadDownloadStats(Object.keys(plugins).slice(i, i+100));
   }
 
   saveData(plugins);
