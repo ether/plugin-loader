@@ -21,7 +21,7 @@ function loadPluginInfo(name) {
   }
 
   return new Promise(function (resolve, reject) {
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     request(options, function(error, response, body) {
       if (error) {
         console.log(error, response);
@@ -134,8 +134,8 @@ async function main() {
   let rawdata = fs.readFileSync('/var/www/etherpad-static/plugins.full.json');
   plugins = JSON.parse(rawdata);
 
-  for (let i=0; i < 200; i++) {
-    await loadPluginInfo(randomProperty(plugins));
+  for (let i=0; i < Object.keys(plugins).length; i++) {
+    await loadPluginInfo(Object.keys(plugins)[i]);
   }
 
   for (let i=0; i < Object.keys(plugins).length; i+=100) {
