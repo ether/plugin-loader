@@ -74,7 +74,7 @@ let loadDownloadStats = function(pluginList) {
 
   return new Promise(function (resolve, reject) {
     request(options, function(error, response, body) {
-      if (error) {
+      if (error || body.error) {
         console.log(error, response);
         return reject();
       }
@@ -88,7 +88,11 @@ let loadDownloadStats = function(pluginList) {
           return plugins;
         } else {
           for (let i=0; i < pluginList.length; i++) {
-            plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+            if (body.hasOwnProperty(pluginList[i]) && body[pluginList[i]] && body[pluginList[i]].hasOwnProperty('downloads')) {
+              plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+            } else {
+              console.log('No download stats for: ' + pluginList[i]);
+            }
           }
         }
         return plugins;

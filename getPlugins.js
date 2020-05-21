@@ -23,7 +23,7 @@ function loadPluginInfo(name) {
   return new Promise(function (resolve, reject) {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     request(options, function(error, response, body) {
-      if (error) {
+      if (error || body.error) {
         console.log(error, response);
         return reject();
       }
@@ -121,7 +121,11 @@ var loadDownloadStats = function(pluginList) {
       }
 
       for (let i=0; i < pluginList.length; i++) {
-        plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+        if (body.hasOwnProperty(pluginList[i]) && body[pluginList[i]] && body[pluginList[i]].hasOwnProperty('downloads')) {
+          plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+        } else {
+          console.log('No download stats for: ' + pluginList[i]);
+        }
       }
 
       resolve();
