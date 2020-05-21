@@ -1,9 +1,13 @@
 const ChangesStream = require('concurrent-couch-follower');
 const Normalize = require('normalize-registry-metadata');
+const jsonDiff = require('json-diff');
+const request = require('request');
 const fs = require('fs');
+const https = require('https');
+const util = require('util');
 
 const db = 'https://replicate.npmjs.com/registry/_changes';
-var configOptions = {
+const configOptions = {
   db: db,
   include_docs: true,
   sequence: '.sequence',
@@ -11,16 +15,19 @@ var configOptions = {
   concurrency: 200
 }
 
+//const pluginsPath = '/var/www/etherpad-static/%s.json';
+const pluginsPath = '%s.json';
+
 // var changes = new ChangesStream({
 //   db: db,
 //   include_docs: true
 // });
 
-let rawdata = JSON.parse(fs.readFileSync('packages-debug.json'));
+// let rawdata = JSON.parse(fs.readFileSync('packages-debug.json'));
 
 let start = new Date();
 
-var dataHandler = function(data, done) {
+let dataHandler = function(data, done) {
   let change = data;
   if (change.seq % 1000 === 0) {
     let duration = (new Date() - start) / 1000;
@@ -33,19 +40,17 @@ var dataHandler = function(data, done) {
     if (name.substr(0, 3) === 'ep_') {
       let data = Normalize(change.doc);
 
-      rawdata.packages[name] = {
-        data: data,
-        name: name,
-        version: data['dist-tags'].latest,
-      };
-      rawdata.seq = change.seq;
-
-      fs.writeFileSync("packages-debug.json", JSON.stringify(rawdata));
+      // rawdata.packages[name] = {
+      //   data: data,
+      //   name: name,
+      //   version: data['dist-tags'].latest,
+      // };
+      // rawdata.seq = change.seq;
+      //
+      // fs.writeFileSync("packages-debug.json", JSON.stringify(rawdata));
       console.log(change.doc.name);
 
-      let plugins = JSON.parse(fs.readFileSync('/var/www/etherpad-static/plugins.full.json'));
-      if (!(name in plugins)) {
-        console.log('new package: ' + name);
+      persistPlugins(function (plugins) {
         plugins[name] = {
           name: name,
           description: '' + data.description,
@@ -53,22 +58,133 @@ var dataHandler = function(data, done) {
           version: data['dist-tags'].latest,
           data: data,
         }
-
-        fs.writeFileSync("/var/www/etherpad-static/plugins.full.json", JSON.stringify(plugins));
-      }
-
-      //console.log(Normalize(change.doc));
+        return plugins;
+      });
     }
   }
 
   done();
 }
 
-var stream = ChangesStream(dataHandler, configOptions);
+let loadDownloadStats = function(pluginList) {
+  let options = {
+    url: 'https://api.npmjs.org/downloads/point/last-month/'+pluginList.join(','),
+    json: true
+  }
+
+  return new Promise(function (resolve, reject) {
+    request(options, function(error, response, body) {
+      if (error) {
+        console.log(error, response);
+        return reject();
+      }
+
+      persistPlugins(function (plugins) {
+        if (pluginList.length === 1) {
+          if (!(pluginList[0] in plugins)) {
+            plugins[pluginList[0]] = {};
+          }
+          plugins[pluginList[0]]['downloads'] = body['downloads'];
+          return plugins;
+        } else {
+          for (let i=0; i < pluginList.length; i++) {
+            plugins[pluginList[i]]['downloads'] = body[pluginList[i]]['downloads'];
+          }
+        }
+        return plugins;
+      });
+
+      resolve();
+    });
+  });
+
+};
+
+let persistPlugins = function(changeCb) {
+  let plugins = JSON.parse(fs.readFileSync(util.format(pluginsPath, 'plugins.full')));
+
+  let updatedPlugins = changeCb(JSON.parse(JSON.stringify(plugins)));
+
+  let diff = jsonDiff.diffString(plugins, updatedPlugins);
+
+  let persistedDataLength = Object.keys(plugins).length;
+  let newDataLength = Object.keys(updatedPlugins).length;
+
+  if (diff !== '' && persistedDataLength <= newDataLength) {
+    let simplePlugins = JSON.parse(JSON.stringify(updatedPlugins));
+    Object.keys(simplePlugins)
+      .forEach(key => delete simplePlugins[key]['data']);
+
+    console.log(diff);
+    fs.writeFileSync(util.format(pluginsPath, 'plugins-' + getCurrentDate()), plugins);
+    fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
+
+
+    fs.writeFileSync(util.format(pluginsPath, 'plugins.new'), JSON.stringify(simplePlugins));
+    fs.renameSync(util.format(pluginsPath, 'plugins.new'), util.format(pluginsPath, 'plugins'));
+    console.log('saved plugins');
+  }
+}
+
+let getCurrentDate = function() {
+  var d = new Date(),
+    month = '' + (d.getMonth() + 1),
+    day = '' + d.getDate(),
+    year = d.getFullYear();
+
+  if (month.length < 2)
+    month = '0' + month;
+  if (day.length < 2)
+    day = '0' + day;
+
+  return [year, month, day].join('-');
+}
+
+let loadLatestId = function() {
+  let url = 'https://replicate.npmjs.com/';
+
+  https.get(url, function(res) {
+    let body = '';
+
+    res.on('data', function(chunk){
+      body += chunk;
+    });
+
+    res.on('end', function(){
+      let statusJson = JSON.parse(body);
+      console.log('Latest version: ' + statusJson.update_seq);
+    });
+  });
+};
+
+let stream = ChangesStream(dataHandler, configOptions);
+
+loadLatestId();
 
 stream.on('error', function(data) {
-  console.log(data);
+  console.error(data);
+  stream = ChangesStream(dataHandler, configOptions);
 });
+
+let loadDownloadStatsForAllPlugins = function() {
+  console.log('Reload download stats');
+  let rawdata = fs.readFileSync(util.format(pluginsPath, 'plugins.full'));
+  plugins = JSON.parse(rawdata);
+
+  let promises = [];
+  for (let i=0; i < Object.keys(plugins).length; i+=100) {
+    promises.push(loadDownloadStats(Object.keys(plugins).slice(i, i+100)));
+  }
+
+  Promise.all(promises).then((values) => {
+    console.log('Finished reloading download stats!');
+  }).catch((reason) => {
+    console.error(reason);
+  });
+};
+
+// Update download stats every two hours
+setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
 
 /*
 changes.on('data', function (change) {
