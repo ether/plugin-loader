@@ -52,6 +52,7 @@ let dataHandler = function(change, done) {
       persistPlugins(function (plugins) {
         if (data.versions[data['dist-tags'].latest].deprecated) {
           delete plugins[name];
+          return plugins;
         }
 
         if (!name in plugins) {
@@ -120,7 +121,7 @@ let persistPlugins = function(changeCb) {
   let persistedDataLength = Object.keys(plugins).length;
   let newDataLength = Object.keys(updatedPlugins).length;
 
-  if (diff !== '' && persistedDataLength <= newDataLength) {
+  if (diff !== '' && (persistedDataLength - 1) <= newDataLength) {
     let simplePlugins = JSON.parse(JSON.stringify(updatedPlugins));
     Object.keys(simplePlugins)
       .forEach(key => delete simplePlugins[key]['data']);
