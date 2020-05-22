@@ -27,8 +27,7 @@ const pluginsPath = '%s.json';
 
 let start = new Date();
 
-let dataHandler = function(data, done) {
-  let change = data;
+let dataHandler = function(change, done) {
   if (change.seq % 1000 === 0) {
     let duration = (new Date() - start) / 1000;
     console.log(change.seq + ': Took ' + Math.round(duration) + ' s');
@@ -51,13 +50,20 @@ let dataHandler = function(data, done) {
       console.log(change.doc.name);
 
       persistPlugins(function (plugins) {
-        plugins[name] = {
-          name: name,
-          description: '' + data.description,
-          time: (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0],
-          version: data['dist-tags'].latest,
-          data: data,
+        if (data.versions[data['dist-tags'].latest].deprecated) {
+          delete plugins[name];
         }
+
+        if (!name in plugins) {
+          plugins[name] = {
+            name: name,
+          }
+        }
+
+        plugins[name]['description'] = '' + data.description;
+        plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
+        plugins[name]['version'] = '' + data['dist-tags'].latest;
+        plugins[name]['data'] = '' + data;
         return plugins;
       });
     }
