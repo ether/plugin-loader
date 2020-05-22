@@ -64,7 +64,7 @@ let dataHandler = function(change, done) {
         plugins[name]['description'] = '' + data.description;
         plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
         plugins[name]['version'] = '' + data['dist-tags'].latest;
-        plugins[name]['data'] = '' + data;
+        plugins[name]['data'] = data;
         return plugins;
       });
     }
