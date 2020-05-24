@@ -55,7 +55,7 @@ let dataHandler = function(change, done) {
           return plugins;
         }
 
-        if (!name in plugins) {
+        if (!(name in plugins)) {
           plugins[name] = {
             name: name,
           }
