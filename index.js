@@ -127,7 +127,7 @@ let persistPlugins = function(changeCb) {
       .forEach(key => delete simplePlugins[key]['data']);
 
     console.log(diff);
-    fs.writeFileSync(util.format(pluginsPath, 'plugins-' + getCurrentDate()), plugins);
+    fs.writeFileSync(util.format(pluginsPath, 'plugins-' + getCurrentDate()), JSON.stringify(plugins));
     fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
 
 
