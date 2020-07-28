@@ -18,13 +18,6 @@ const configOptions = {
 const pluginsPath = '/var/www/etherpad-static/%s.json';
 //const pluginsPath = '%s.json';
 
-// var changes = new ChangesStream({
-//   db: db,
-//   include_docs: true
-// });
-
-// let rawdata = JSON.parse(fs.readFileSync('packages-debug.json'));
-
 let start = new Date();
 
 let dataHandler = function(change, done) {
@@ -39,14 +32,6 @@ let dataHandler = function(change, done) {
     if (name.substr(0, 3) === 'ep_') {
       let data = Normalize(change.doc);
 
-      // rawdata.packages[name] = {
-      //   data: data,
-      //   name: name,
-      //   version: data['dist-tags'].latest,
-      // };
-      // rawdata.seq = change.seq;
-      //
-      // fs.writeFileSync("packages-debug.json", JSON.stringify(rawdata));
       console.log(change.doc.name);
 
       persistPlugins(function (plugins) {
@@ -196,28 +181,4 @@ let loadDownloadStatsForAllPlugins = function() {
 
 // Update download stats every two hours
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
-
-/*
-changes.on('data', function (change) {
-  if (change.seq % 500 === 1) {
-    console.log(change.seq);
-  }
-  if (change.doc.name) {
-    if (change.doc.name.substr(0, 3) === 'ep_') {
-      let data = Normalize(change.doc);
-      rawdata.packages.push({
-        raw: change,
-        data: data,
-        name: change.doc.name,
-        version: data['dist-tags'].latest,
-      });
-      rawdata.seq = change.seq;
-
-      fs.writeFileSync("packages.json", JSON.stringify(rawdata));
-      console.log(change.doc.name);
-      //console.log(Normalize(change.doc));
-    }
-  }
-});
-*/
 
