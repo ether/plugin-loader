@@ -12,11 +12,11 @@ const configOptions = {
   include_docs: true,
   sequence: '.sequence',
   now: false,
-  concurrency: 200
+  concurrency: 4
 }
 
-//const pluginsPath = '/var/www/etherpad-static/%s.json';
-const pluginsPath = '%s.json';
+const pluginsPath = '/var/www/etherpad-static/%s.json';
+//const pluginsPath = '%s.json';
 
 // var changes = new ChangesStream({
 //   db: db,
