@@ -53,6 +53,13 @@ let dataHandler = function(change, done) {
         return plugins;
       });
     }
+  } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
+    console.log('Delete ' + change.id);
+
+    persistPlugins(function (plugins) {
+      delete plugins[change.id];
+      return plugins;
+    });
   }
 
   done();
