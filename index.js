@@ -15,8 +15,8 @@ const configOptions = {
   concurrency: 4
 }
 
-const pluginsPath = '/var/www/etherpad-static/%s.json';
-//const pluginsPath = '%s.json';
+//const pluginsPath = '/var/www/etherpad-static/%s.json';
+const pluginsPath = '%s.json';
 
 let start = new Date();
 
@@ -159,6 +159,18 @@ let loadLatestId = function() {
     });
   });
 };
+
+let createFile = function(path) {
+  fs.writeFile(path, "{}", { flag: 'wx' }, function (err) {
+    if (err) throw err;
+  });
+}
+
+let createFiles = function() {
+  createFile(util.format(pluginsPath, 'plugins.full'));
+}
+
+createFiles();
 
 let stream = ChangesStream(dataHandler, configOptions);
 
