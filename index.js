@@ -5,6 +5,8 @@ const request = require('request');
 const fs = require('fs');
 const https = require('https');
 const util = require('util');
+const express = require('express')
+const app = express()
 
 const db = 'https://replicate.npmjs.com/registry/_changes';
 const configOptions = {
@@ -14,6 +16,7 @@ const configOptions = {
   now: false,
   concurrency: 4
 }
+const PORT = process.env.PORT || 5001;
 
 //const pluginsPath = '/var/www/etherpad-static/%s.json';
 const pluginsPath = '%s.json';
@@ -184,7 +187,7 @@ stream.on('error', function(data) {
 let loadDownloadStatsForAllPlugins = function() {
   console.log('Reload download stats');
   let rawdata = fs.readFileSync(util.format(pluginsPath, 'plugins.full'));
-  plugins = JSON.parse(rawdata);
+  let plugins = JSON.parse(rawdata);
 
   let promises = [];
   for (let i=0; i < Object.keys(plugins).length; i+=100) {
@@ -201,3 +204,10 @@ let loadDownloadStatsForAllPlugins = function() {
 // Update download stats every two hours
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
 
+app.get('/plugins.full.json', (req, res) => {
+  res.json(require(util.format(pluginsPath, 'plugins.full')))
+})
+
+app.listen(PORT, () => {
+  console.log(`Example app listening at http://localhost:${PORT}`)
+})
