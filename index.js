@@ -6,6 +6,7 @@ const fs = require('fs');
 const https = require('https');
 const util = require('util');
 const express = require('express')
+const path = require('path');
 const app = express()
 
 const db = 'https://replicate.npmjs.com/registry/_changes';
@@ -205,7 +206,7 @@ let loadDownloadStatsForAllPlugins = function() {
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
 
 app.get('/plugins.full.json', (req, res) => {
-  res.json(require(util.format(pluginsPath, 'plugins.full')))
+  res.sendFile(path.join(__dirname, 'plugins.full.json'));
 })
 
 app.listen(PORT, () => {
