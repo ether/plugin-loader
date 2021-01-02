@@ -6,17 +6,27 @@ const fs = require('fs');
 const https = require('https');
 const util = require('util');
 const express = require('express')
-const path = require('path');
 const app = express()
 
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
 const db = 'https://replicate.npmjs.com/registry/_changes';
-const configOptions = {
-  db: db,
-  include_docs: true,
-  sequence: '.sequence',
-  now: false,
-  concurrency: 4
+const saveInDb = async (seq, cb) => {
+  try {
+    const client = await pool.connect();
+    const query = 'UPDATE data SET value=($1) WHERE id = "sequence"';
+    await client.query(query, [seq]);
+    client.release();
+  } catch (err) {
+    console.error(err);
+  }
+  cb();
 }
+
+
 const PORT = process.env.PORT || 5001;
 
 //const pluginsPath = '/var/www/etherpad-static/%s.json';
@@ -176,14 +186,45 @@ let createFiles = function() {
 
 createFiles();
 
-let stream = ChangesStream(dataHandler, configOptions);
+let stream;
 
-loadLatestId();
+let loadSequenceFromDB = async (cb) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT value FROM data WHERE id = "plugins.full.json"');
+    console.log(result);
+    client.release();
+    cb(null, result.rows[0].value)
+  } catch (err) {
+    console.error(err);
+    cb(err, null)
+  }
+}
 
-stream.on('error', function(data) {
-  console.error(data);
-  stream = ChangesStream(dataHandler, configOptions);
-});
+let startStream = () => {
+  loadSequenceFromDB(function(err, sequence) {
+    let configOptions = {
+      db: db,
+      include_docs: true,
+      sequence: (seq, cb) => {
+        saveInDb(seq, cb)
+      },
+      since: sequence,
+      concurrency: 4
+    }
+
+    stream = ChangesStream(dataHandler, configOptions);
+
+    stream.on('error', function(data) {
+      console.error(data);
+      startStream()
+    });
+  })
+}
+
+startStream()
+
+loadLatestId()
 
 let loadDownloadStatsForAllPlugins = function() {
   console.log('Reload download stats');
@@ -205,8 +246,16 @@ let loadDownloadStatsForAllPlugins = function() {
 // Update download stats every two hours
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
 
-app.get('/plugins.full.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'plugins.full.json'));
+app.get('/plugins.full.json', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT value FROM data WHERE id = "plugins.full.json"');
+    res.json(result);
+    client.release();
+  } catch (err) {
+    console.error(err);
+    res.send("Error " + err);
+  }
 })
 
 app.listen(PORT, () => {

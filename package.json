@@ -4,6 +4,7 @@
     "express": "^4.17.1",
     "json-diff": "^0.5.4",
     "normalize-registry-metadata": "^1.1.2",
+    "pg": "^8.5.1",
     "request": "^2.88.2"
   },
   "scripts": {
