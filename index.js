@@ -192,12 +192,12 @@ let loadSequenceFromDB = async (cb) => {
   try {
     console.log('loadSequenceFromDB')
     const client = await pool.connect();
-    const result = await client.query('SELECT value FROM data WHERE id = "sequence"');
+    const result = await client.query('SELECT value FROM `data` WHERE `id` = "sequence"');
     console.log(result);
     client.release();
     cb(null, result.rows[0].value.id)
   } catch (err) {
-    console.error(err);
+    console.error('loadSequenceFromDB error:', err);
     cb(err, null)
   }
 }
