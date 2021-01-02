@@ -132,7 +132,7 @@ let persistPlugins = function(changeCb) {
     Object.keys(simplePlugins)
       .forEach(key => delete simplePlugins[key]['data']);
 
-    console.log(diff);
+    // console.log(diff);
     fs.writeFileSync(util.format(pluginsPath, 'plugins-' + getCurrentDate()), JSON.stringify(plugins));
     fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
 
@@ -190,11 +190,12 @@ let stream;
 
 let loadSequenceFromDB = async (cb) => {
   try {
+    console.log('loadSequenceFromDB')
     const client = await pool.connect();
-    const result = await client.query('SELECT value FROM data WHERE id = "plugins.full.json"');
+    const result = await client.query('SELECT value FROM data WHERE id = "sequence"');
     console.log(result);
     client.release();
-    cb(null, result.rows[0].value)
+    cb(null, result.rows[0].value.id)
   } catch (err) {
     console.error(err);
     cb(err, null)
