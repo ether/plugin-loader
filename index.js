@@ -17,11 +17,11 @@ const db = 'https://replicate.npmjs.com/registry/_changes';
 const saveInDb = async (seq, cb) => {
   try {
     const client = await pool.connect();
-    const query = 'UPDATE data SET value=($1) WHERE id = "sequence"';
+    const query = `UPDATE data SET value=($1) WHERE id = 'sequence'`;
     await client.query(query, [seq]);
     client.release();
   } catch (err) {
-    console.error(err);
+    console.error('saveInDb', err);
   }
   cb();
 }
