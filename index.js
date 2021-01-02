@@ -250,7 +250,8 @@ app.get('/plugins.full.json', async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT value FROM data WHERE id = "plugins.full.json"');
-    res.json(result);
+    console.log(result)
+    res.json(result.rows[0].value);
     client.release();
   } catch (err) {
     console.error(err);
