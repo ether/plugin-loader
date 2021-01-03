@@ -32,4 +32,7 @@ app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`)
 })
 
-const worker = spawn('node worker.js');
+const worker = spawn('node', ['worker.js']);
+worker.stdout.on('data', function(data) {
+  console.log('Worker: ' + data);
+});
