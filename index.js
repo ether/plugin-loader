@@ -185,39 +185,39 @@ let loadLatestId = function() {
 
 let stream;
 
-let loadSequenceFromDB = async (cb) => {
+let loadSequenceFromDB = async () => {
   try {
     console.log('loadSequenceFromDB')
     const client = await pool.connect();
     const result = await client.query(`SELECT value FROM data WHERE id = 'sequence'`);
     console.log(result);
     client.release();
-    cb(null, result.rows[0].value.id)
+    return result.rows[0].value.id
   } catch (err) {
     console.error('loadSequenceFromDB error:', err);
-    cb(err, null)
+    return null
   }
 }
 
-let startStream = () => {
-  loadSequenceFromDB(function(err, sequence) {
-    let configOptions = {
-      db: db,
-      include_docs: true,
-      sequence: (seq, cb) => {
-        saveInDb(seq, cb)
-      },
-      since: sequence,
-      concurrency: 4
-    }
+let startStream = async () => {
+  let sequence = await loadSequenceFromDB()
+  let configOptions = {
+    db: db,
+    include_docs: true,
+    sequence: (seq, cb) => {
+      saveInDb(seq, cb)
+    },
+    since: sequence,
+    concurrency: 4
+  }
 
-    stream = ChangesStream(dataHandler, configOptions);
+  stream = ChangesStream(dataHandler, configOptions);
 
-    stream.on('error', function(data) {
-      console.error(data);
-      startStream()
-    });
-  })
+  stream.on('error', function(data) {
+    console.error(data);
+    startStream()
+  });
+
 }
 
 startStream()
