@@ -130,8 +130,6 @@ let persistPlugins = async (changeCb) => {
 
   let updatedPlugins = changeCb(JSON.parse(JSON.stringify(plugins)));
 
-  console.log('updated plugins', updatedPlugins)
-
   let diff = jsonDiff.diffString(plugins, updatedPlugins);
 
   let persistedDataLength = Object.keys(plugins).length;
@@ -148,7 +146,8 @@ let persistPlugins = async (changeCb) => {
     try {
       const client = await pool.connect();
       const query = `UPDATE data SET value=($1) WHERE id = 'plugins.full.json'`;
-      await client.query(query, [plugins]);
+      console.log('updated plugins', updatedPlugins)
+      await client.query(query, [updatedPlugins]);
       client.release();
     } catch (err) {
       console.error('saveInDb', err);
@@ -234,7 +233,7 @@ let getPluginData = async () => {
   const client = await pool.connect();
   const result = await client.query(`SELECT value FROM data WHERE id = 'plugins.full.json'`);
   client.release();
-  console.log(result.rows)
+  console.log(result.rows[0].value)
   return JSON.parse(result.rows[0].value);
 }
 
