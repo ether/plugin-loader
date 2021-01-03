@@ -36,3 +36,7 @@ const worker = spawn('node', ['worker.js']);
 worker.stdout.on('data', function(data) {
   console.log('Worker: ' + data.toString().trim());
 });
+
+worker.stderr.on('data', function(data) {
+  console.log('Worker error: ' + data.toString().trim());
+});
