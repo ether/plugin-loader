@@ -2,9 +2,7 @@ const ChangesStream = require('concurrent-couch-follower');
 const Normalize = require('normalize-registry-metadata');
 const jsonDiff = require('json-diff');
 const request = require('request');
-const fs = require('fs');
 const https = require('https');
-const util = require('util');
 const express = require('express')
 const app = express()
 
@@ -86,13 +84,13 @@ let loadDownloadStats = function(pluginList) {
   }
 
   return new Promise(function (resolve, reject) {
-    request(options, function(error, response, body) {
+    request(options, async function(error, response, body) {
       if (error || body.error) {
         console.log(error, response);
         return reject();
       }
 
-      persistPlugins(function (plugins) {
+      await persistPlugins(function (plugins) {
         if (pluginList.length === 1) {
           if (!(pluginList[0] in plugins)) {
             plugins[pluginList[0]] = {};
@@ -117,8 +115,16 @@ let loadDownloadStats = function(pluginList) {
 
 };
 
-let persistPlugins = function(changeCb) {
-  let plugins = JSON.parse(fs.readFileSync(util.format(pluginsPath, 'plugins.full')));
+let persistPlugins = async (changeCb) => {
+  // let plugins = JSON.parse(fs.readFileSync(util.format(pluginsPath, 'plugins.full')));
+  let plugins = {};
+
+  try {
+    plugins = getPluginData();
+    console.log('persistPlugins', plugins)
+  } catch (err) {
+    console.error(err);
+  }
 
   let updatedPlugins = changeCb(JSON.parse(JSON.stringify(plugins)));
 
@@ -133,28 +139,19 @@ let persistPlugins = function(changeCb) {
       .forEach(key => delete simplePlugins[key]['data']);
 
     // console.log(diff);
-    fs.writeFileSync(util.format(pluginsPath, 'plugins-' + getCurrentDate()), JSON.stringify(plugins));
-    fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
+    //fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
 
+    try {
+      const client = await pool.connect();
+      const query = `UPDATE data SET value=($1) WHERE id = 'plugins.full.json'`;
+      await client.query(query, [plugins]);
+      client.release();
+    } catch (err) {
+      console.error('saveInDb', err);
+    }
 
-    fs.writeFileSync(util.format(pluginsPath, 'plugins.new'), JSON.stringify(simplePlugins));
-    fs.renameSync(util.format(pluginsPath, 'plugins.new'), util.format(pluginsPath, 'plugins'));
     console.log('saved plugins');
   }
-}
-
-let getCurrentDate = function() {
-  var d = new Date(),
-    month = '' + (d.getMonth() + 1),
-    day = '' + d.getDate(),
-    year = d.getFullYear();
-
-  if (month.length < 2)
-    month = '0' + month;
-  if (day.length < 2)
-    day = '0' + day;
-
-  return [year, month, day].join('-');
 }
 
 let loadLatestId = function() {
@@ -174,17 +171,17 @@ let loadLatestId = function() {
   });
 };
 
-let createFile = function(path) {
-  fs.writeFile(path, "{}", { flag: 'wx' }, function (err) {
-    if (err) throw err;
-  });
-}
-
-let createFiles = function() {
-  createFile(util.format(pluginsPath, 'plugins.full'));
-}
-
-createFiles();
+// let createFile = function(path) {
+//   fs.writeFile(path, "{}", { flag: 'wx' }, function (err) {
+//     if (err) throw err;
+//   });
+// }
+//
+// let createFiles = function() {
+//   createFile(util.format(pluginsPath, 'plugins.full'));
+// }
+//
+// createFiles();
 
 let stream;
 
@@ -227,9 +224,16 @@ startStream()
 
 loadLatestId()
 
+let getPluginData = async () => {
+  const client = await pool.connect();
+  const result = await client.query(`SELECT value FROM data WHERE id = 'plugins.full.json'`);
+  client.release();
+  return result.rows[0].value;
+}
+
 let loadDownloadStatsForAllPlugins = function() {
   console.log('Reload download stats');
-  let rawdata = fs.readFileSync(util.format(pluginsPath, 'plugins.full'));
+  let rawdata = getPluginData()
   let plugins = JSON.parse(rawdata);
 
   let promises = [];
@@ -249,11 +253,7 @@ setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
 
 app.get('/plugins.full.json', async (req, res) => {
   try {
-    const client = await pool.connect();
-    const result = await client.query('SELECT value FROM data WHERE id = "plugins.full.json"');
-    console.log(result)
-    res.json(result.rows[0].value);
-    client.release();
+    res.json(await getPluginData())
   } catch (err) {
     console.error(err);
     res.send("Error " + err);
