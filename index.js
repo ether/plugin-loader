@@ -234,7 +234,7 @@ let getPluginData = async () => {
   const result = await client.query(`SELECT value FROM data WHERE id = 'plugins.full.json'`);
   client.release();
   console.log(result.rows[0].value)
-  return JSON.parse(result.rows[0].value);
+  return result.rows[0].value
 }
 
 let loadDownloadStatsForAllPlugins = async () => {
