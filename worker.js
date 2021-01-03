@@ -63,6 +63,8 @@ let dataHandler = (change, done) => {
       delete plugins[change.id];
       return plugins;
     }, done);
+  } else {
+    done();
   }
 }
 
