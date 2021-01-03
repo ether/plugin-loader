@@ -191,10 +191,8 @@ let stream;
 
 let loadSequenceFromDB = async () => {
   try {
-    console.log('loadSequenceFromDB')
     const client = await pool.connect();
     const result = await client.query(`SELECT value FROM data WHERE id = 'sequence'`);
-    console.log(result);
     client.release();
     return result.rows[0].value
   } catch (err) {
@@ -228,17 +226,19 @@ startStream()
 
 loadLatestId()
 
+/**
+ * @returns {Promise<JSON>}
+ */
 let getPluginData = async () => {
   const client = await pool.connect();
   const result = await client.query(`SELECT value FROM data WHERE id = 'plugins.full.json'`);
   client.release();
-  return result.rows[0].value;
+  return JSON.parse(result.rows[0].value);
 }
 
-let loadDownloadStatsForAllPlugins = function() {
+let loadDownloadStatsForAllPlugins = async () => {
   console.log('Reload download stats');
-  let rawdata = getPluginData()
-  let plugins = JSON.parse(rawdata);
+  let plugins = await getPluginData()
 
   let promises = [];
   for (let i=0; i < Object.keys(plugins).length; i+=100) {
