@@ -51,6 +51,7 @@ let dataHandler = function(change, done) {
           delete plugins[name];
           return plugins;
         }
+        console.log('new plugin', name)
 
         if (!(name in plugins)) {
           plugins[name] = {
@@ -128,6 +129,8 @@ let persistPlugins = async (changeCb) => {
   }
 
   let updatedPlugins = changeCb(JSON.parse(JSON.stringify(plugins)));
+
+  console.log('updated plugins', updatedPlugins)
 
   let diff = jsonDiff.diffString(plugins, updatedPlugins);
 
