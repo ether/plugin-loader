@@ -203,6 +203,7 @@ let loadSequenceFromDB = async () => {
 
 let startStream = async () => {
   let sequence = await loadSequenceFromDB()
+  console.log('Load from: ' + sequence)
   let configOptions = {
     db: db,
     include_docs: true,
@@ -233,6 +234,7 @@ let getPluginData = async () => {
   const client = await pool.connect();
   const result = await client.query(`SELECT value FROM data WHERE id = 'plugins.full.json'`);
   client.release();
+  console.log(result.rows)
   return JSON.parse(result.rows[0].value);
 }
 
