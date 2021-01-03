@@ -219,5 +219,5 @@ startStream()
 
 loadLatestId()
 
-// Update download stats every two hours
-setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
+// Update download stats every half hour
+setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 30);
