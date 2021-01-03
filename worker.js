@@ -177,7 +177,7 @@ let startStream = async () => {
       saveInDb(seq, cb)
     },
     since: sequence,
-    concurrency: 4
+    concurrency: 1
   }
 
   stream = ChangesStream(dataHandler, configOptions);
