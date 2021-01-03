@@ -9,7 +9,6 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
-const db = 'https://replicate.npmjs.com/registry/_changes';
 const saveInDb = async (seq, cb) => {
   try {
     const client = await pool.connect();
@@ -22,13 +21,10 @@ const saveInDb = async (seq, cb) => {
   cb();
 }
 
-
-const PORT = process.env.PORT || 5001;
-
 let start = new Date();
 
 let dataHandler = function(change, done) {
-  if (change.seq % 1000 === 0) {
+  if (change.seq % 1000 === 0 || start < (new Date() - (600 * 1000))) {
     let duration = (new Date() - start) / 1000;
     console.log(change.seq + ': Took ' + Math.round(duration) + ' s');
     start = new Date();
@@ -46,7 +42,6 @@ let dataHandler = function(change, done) {
           delete plugins[name];
           return plugins;
         }
-        console.log('new plugin', name)
 
         if (!(name in plugins)) {
           plugins[name] = {
@@ -87,7 +82,6 @@ let loadDownloadStats = function(pluginList) {
       }
 
       await persistPlugins(function (plugins) {
-        console.log('persistPlugins callback', plugins)
         if (pluginList.length === 1) {
           if (!(pluginList[0] in plugins)) {
             plugins[pluginList[0]] = {};
@@ -109,16 +103,13 @@ let loadDownloadStats = function(pluginList) {
       resolve();
     });
   });
-
 };
 
 let persistPlugins = async (changeCb) => {
-  // let plugins = JSON.parse(fs.readFileSync(util.format(pluginsPath, 'plugins.full')));
   let plugins = {};
 
   try {
     plugins = await getPluginData();
-    console.log('persistPlugins', plugins)
   } catch (err) {
     console.error(err);
   }
@@ -131,17 +122,9 @@ let persistPlugins = async (changeCb) => {
   let newDataLength = Object.keys(updatedPlugins).length;
 
   if (diff !== '' && (persistedDataLength - 1) <= newDataLength) {
-    let simplePlugins = JSON.parse(JSON.stringify(updatedPlugins));
-    Object.keys(simplePlugins)
-    .forEach(key => delete simplePlugins[key]['data']);
-
-    // console.log(diff);
-    //fs.writeFileSync(util.format(pluginsPath, 'plugins.full'), JSON.stringify(updatedPlugins));
-
     try {
       const client = await pool.connect();
       const query = `UPDATE data SET value=($1) WHERE id = 'plugins.full.json'`;
-      console.log('updated plugins', updatedPlugins)
       await client.query(query, [updatedPlugins]);
       client.release();
     } catch (err) {
@@ -169,20 +152,6 @@ let loadLatestId = function() {
   });
 };
 
-// let createFile = function(path) {
-//   fs.writeFile(path, "{}", { flag: 'wx' }, function (err) {
-//     if (err) throw err;
-//   });
-// }
-//
-// let createFiles = function() {
-//   createFile(util.format(pluginsPath, 'plugins.full'));
-// }
-//
-// createFiles();
-
-let stream;
-
 let loadSequenceFromDB = async () => {
   try {
     const client = await pool.connect();
@@ -199,7 +168,7 @@ let startStream = async () => {
   let sequence = await loadSequenceFromDB()
   console.log('Load from: ' + sequence)
   let configOptions = {
-    db: db,
+    db: 'https://replicate.npmjs.com/registry/_changes',
     include_docs: true,
     sequence: (seq, cb) => {
       saveInDb(seq, cb)
@@ -214,12 +183,7 @@ let startStream = async () => {
     console.error(data);
     startStream()
   });
-
 }
-
-startStream()
-
-loadLatestId()
 
 /**
  * @returns {Promise<JSON>}
@@ -246,6 +210,11 @@ let loadDownloadStatsForAllPlugins = async () => {
     console.error(reason);
   });
 };
+
+let stream;
+startStream()
+
+loadLatestId()
 
 // Update download stats every two hours
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 60 * 2);
