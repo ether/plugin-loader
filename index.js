@@ -34,5 +34,5 @@ app.listen(PORT, () => {
 
 const worker = spawn('node', ['worker.js']);
 worker.stdout.on('data', function(data) {
-  console.log('Worker: ' + data);
+  console.log('Worker: ' + data.toString().trim());
 });
