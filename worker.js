@@ -23,7 +23,7 @@ const saveInDb = async (seq, cb) => {
 
 let start = new Date();
 
-let dataHandler = function(change, done) {
+let dataHandler = async function(change, done) {
   if (change.seq % 1000 === 0 || start < (new Date() - (600 * 1000))) {
     let duration = (new Date() - start) / 1000;
     console.log(change.seq + ': Took ' + Math.round(duration) + ' s');
@@ -37,7 +37,7 @@ let dataHandler = function(change, done) {
 
       console.log(change.doc.name);
 
-      persistPlugins(function (plugins) {
+      await persistPlugins(function (plugins) {
         if (data.versions[data['dist-tags'].latest].deprecated) {
           delete plugins[name];
           return plugins;
@@ -59,7 +59,7 @@ let dataHandler = function(change, done) {
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
 
-    persistPlugins(function (plugins) {
+    await persistPlugins(function (plugins) {
       delete plugins[change.id];
       return plugins;
     });
