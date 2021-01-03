@@ -91,6 +91,7 @@ let loadDownloadStats = function(pluginList) {
       }
 
       await persistPlugins(function (plugins) {
+        console.log('persistPlugins callback', plugins)
         if (pluginList.length === 1) {
           if (!(pluginList[0] in plugins)) {
             plugins[pluginList[0]] = {};
@@ -120,7 +121,7 @@ let persistPlugins = async (changeCb) => {
   let plugins = {};
 
   try {
-    plugins = getPluginData();
+    plugins = await getPluginData();
     console.log('persistPlugins', plugins)
   } catch (err) {
     console.error(err);
