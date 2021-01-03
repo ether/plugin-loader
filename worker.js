@@ -23,7 +23,7 @@ const saveInDb = async (seq, cb) => {
 
 let start = new Date();
 
-let dataHandler = async function(change, done) {
+let dataHandler = (change, done) => {
   if (change.seq % 1000 === 0 || start < (new Date() - (600 * 1000))) {
     let duration = (new Date() - start) / 1000;
     console.log(change.seq + ': Took ' + Math.round(duration) + ' s');
@@ -37,7 +37,7 @@ let dataHandler = async function(change, done) {
 
       console.log(change.doc.name);
 
-      await persistPlugins(function (plugins) {
+      persistPlugins(function (plugins) {
         if (data.versions[data['dist-tags'].latest].deprecated) {
           delete plugins[name];
           return plugins;
@@ -54,18 +54,16 @@ let dataHandler = async function(change, done) {
         plugins[name]['version'] = '' + data['dist-tags'].latest;
         plugins[name]['data'] = data;
         return plugins;
-      });
+      }, done);
     }
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
 
-    await persistPlugins(function (plugins) {
+    persistPlugins(function (plugins) {
       delete plugins[change.id];
       return plugins;
-    });
+    }, done);
   }
-
-  done();
 }
 
 let loadDownloadStats = function(pluginList) {
@@ -81,7 +79,7 @@ let loadDownloadStats = function(pluginList) {
         return reject();
       }
 
-      await persistPlugins(function (plugins) {
+      persistPlugins(function (plugins) {
         if (pluginList.length === 1) {
           if (!(pluginList[0] in plugins)) {
             plugins[pluginList[0]] = {};
@@ -98,15 +96,14 @@ let loadDownloadStats = function(pluginList) {
           }
         }
         return plugins;
-      });
-
-      resolve();
+      }, resolve);
     });
   });
 };
 
-let persistPlugins = async (changeCb) => {
+let persistPlugins = async (changeCb, cb) => {
   let plugins = {};
+  console.log('start persistPlugins')
 
   try {
     plugins = await getPluginData();
@@ -133,6 +130,8 @@ let persistPlugins = async (changeCb) => {
 
     console.log('saved plugins');
   }
+
+  cb();
 }
 
 let loadLatestId = function() {
