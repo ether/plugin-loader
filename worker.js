@@ -55,6 +55,8 @@ let dataHandler = (change, done) => {
         plugins[name]['data'] = data;
         return plugins;
       }, done);
+    } else {
+      done();
     }
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
