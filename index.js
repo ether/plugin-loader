@@ -192,7 +192,7 @@ let loadSequenceFromDB = async () => {
     const result = await client.query(`SELECT value FROM data WHERE id = 'sequence'`);
     console.log(result);
     client.release();
-    return result.rows[0].value.id
+    return result.rows[0].value
   } catch (err) {
     console.error('loadSequenceFromDB error:', err);
     return null
