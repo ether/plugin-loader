@@ -52,6 +52,7 @@ let dataHandler = (change, done) => {
         plugins[name]['description'] = '' + data.description;
         plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
         plugins[name]['version'] = '' + data['dist-tags'].latest;
+        plugins[name]['official'] = false;
         plugins[name]['data'] = data;
         return plugins;
       }, done);
@@ -135,7 +136,9 @@ let persistPlugins = async (changeCb, cb) => {
     console.log('saved plugins');
   }
 
-  cb();
+  if (cb) {
+    cb();
+  }
 }
 
 let loadLatestId = function() {
@@ -214,6 +217,42 @@ let loadDownloadStatsForAllPlugins = async () => {
   });
 };
 
+let loadOfficialPluginsList = async() => {
+  console.log('Load official plugin list');
+
+  let body = '';
+  require( 'https' )
+    .get({
+      hostname : 'api.github.com'
+      , path :'/orgs/ether/repos'
+      , headers : {
+        'User-Agent' : 'Etherpad plugin loader'
+      }
+    }, function(res) {
+      res.on('data', function (data) {
+        body += data;
+    });
+
+      res.on('end', () => {
+        let jsonResponse = JSON.parse(body);
+
+        persistPlugins(function (plugins) {
+          Object.keys(plugins).forEach((key) => {
+            plugins[key]['official'] = false
+          })
+
+          jsonResponse.forEach((repository) => {
+            if (plugins.hasOwnProperty(repository.name)) {
+              plugins[repository.name]['official'] = true;
+            }
+          })
+          return plugins;
+        });
+      })
+    });
+
+}
+
 let stream;
 startStream()
 
@@ -221,3 +260,5 @@ loadLatestId()
 
 // Update download stats every half hour
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 30);
+
+setInterval(loadOfficialPluginsList, 1000 * 60 * 60);
