@@ -52,7 +52,9 @@ let dataHandler = (change, done) => {
         plugins[name]['description'] = '' + data.description;
         plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
         plugins[name]['version'] = '' + data['dist-tags'].latest;
-        plugins[name]['official'] = false;
+        if (!plugins[name].hasOwnProperty('official')) {
+          plugins[name]['official'] = false;
+        }
         plugins[name]['data'] = data;
         return plugins;
       }, done);
