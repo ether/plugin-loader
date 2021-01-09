@@ -219,40 +219,54 @@ let loadDownloadStatsForAllPlugins = async () => {
   });
 };
 
-let loadOfficialPluginsList = async() => {
-  console.log('Load official plugin list');
-
-  let body = '';
-  require( 'https' )
-    .get({
-      hostname : 'api.github.com'
-      , path :'/orgs/ether/repos'
-      , headers : {
-        'User-Agent' : 'Etherpad plugin loader'
+let getEtherRepositoryList = (page) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    https.get({
+      hostname: 'api.github.com'
+      , path: '/orgs/ether/repos?per_page=100&page=' + page
+      , headers: {
+        'User-Agent': 'Etherpad plugin loader'
       }
-    }, function(res) {
+    }, function (res) {
       res.on('data', function (data) {
         body += data;
-    });
+      });
+
+      res.on('error', reject);
 
       res.on('end', () => {
         let jsonResponse = JSON.parse(body);
-
-        persistPlugins(function (plugins) {
-          Object.keys(plugins).forEach((key) => {
-            plugins[key]['official'] = false
-          })
-
-          jsonResponse.forEach((repository) => {
-            if (plugins.hasOwnProperty(repository.name)) {
-              plugins[repository.name]['official'] = true;
-            }
-          })
-          return plugins;
-        });
+        resolve(jsonResponse)
       })
     });
+  })
+}
 
+let loadOfficialPluginsList = async() => {
+  console.log('Load official plugin list');
+
+  let promises = [];
+  promises.push(getEtherRepositoryList(1))
+  promises.push(getEtherRepositoryList(2))
+
+  function processRepositoryList (repositories) {
+    persistPlugins(function (plugins) {
+      Object.keys(plugins).forEach((key) => {
+        plugins[key]['official'] = false
+      })
+
+      repositories.forEach((repository) => {
+        if (plugins.hasOwnProperty(repository.name)) {
+          plugins[repository.name]['official'] = true;
+        }
+      })
+
+      return plugins;
+    });
+  }
+
+  Promise.all(promises).then(responses => processRepositoryList(responses[0].concat(responses[1])));
 }
 
 let stream;
@@ -263,4 +277,4 @@ loadLatestId()
 // Update download stats every half hour
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 30);
 
-setInterval(loadOfficialPluginsList, 1000 * 60 * 60);
+setInterval(loadOfficialPluginsList, 1000 * 60 * 55);
