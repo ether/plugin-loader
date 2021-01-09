@@ -12,7 +12,7 @@ const pool = new Pool({
 const saveInDb = async (seq, cb) => {
   try {
     const client = await pool.connect();
-    const query = `UPDATE data SET value=($1) WHERE id = 'sequence'`;
+    const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'sequence'`;
     await client.query(query, [seq]);
     client.release();
   } catch (err) {
@@ -128,7 +128,7 @@ let persistPlugins = async (changeCb, cb) => {
   if (diff !== '' && (persistedDataLength - 1) <= newDataLength) {
     try {
       const client = await pool.connect();
-      const query = `UPDATE data SET value=($1) WHERE id = 'plugins.full.json'`;
+      const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'plugins.full.json'`;
       await client.query(query, [updatedPlugins]);
       client.release();
     } catch (err) {
@@ -250,8 +250,8 @@ let loadOfficialPluginsList = async() => {
   promises.push(getEtherRepositoryList(1))
   promises.push(getEtherRepositoryList(2))
 
-  function processRepositoryList (repositories) {
-    persistPlugins(function (plugins) {
+  async function processRepositoryList (repositories) {
+    await persistPlugins(function (plugins) {
       Object.keys(plugins).forEach((key) => {
         plugins[key]['official'] = false
       })
@@ -264,10 +264,41 @@ let loadOfficialPluginsList = async() => {
 
       return plugins;
     });
+
+    let repositoryList = []
+    repositories.forEach((repository) => {
+      repositoryList.push(repository.name)
+    })
+
+    const client = await pool.connect();
+    const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
+    await client.query(query, [repositoryList]);
+    client.release();
   }
 
   Promise.all(promises).then(responses => processRepositoryList(responses[0].concat(responses[1])));
 }
+
+/**
+ * @returns {Promise<JSON>}
+ */
+let getOfficialPluginListData = async () => {
+  const client = await pool.connect();
+  const result = await client.query(`SELECT value, date_modified FROM data WHERE id = 'ether_repositories'`);
+  client.release();
+  return result.rows[0]
+}
+
+let scheduleNextLoadingOfficialPluginList = async() => {
+  let officialPluginList = await getOfficialPluginListData()
+
+  let timeNextUpdate = 1000 * 60 * 60 * 24 - (Date.now() - officialPluginList.date_modified)
+  console.log('Next update of official plugin list: ' + (timeNextUpdate / 1000) + 's')
+
+  setInterval(loadOfficialPluginsList, timeNextUpdate);
+}
+
+scheduleNextLoadingOfficialPluginList();
 
 let stream;
 startStream()
@@ -276,5 +307,3 @@ loadLatestId()
 
 // Update download stats every half hour
 setInterval(loadDownloadStatsForAllPlugins, 1000 * 60 * 30);
-
-setInterval(loadOfficialPluginsList, 1000 * 60 * 55);

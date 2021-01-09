@@ -34,11 +34,11 @@ app.listen(PORT, () => {
 
 let worker = spawn('node', ['worker.js']);
 worker.stdout.on('data', function(data) {
-  console.log('worker: ' + data.toString().trim());
+  console.log('[worker]: ' + data.toString().trim());
 });
 
 worker.stderr.on('data', function(data) {
-  console.log('worker error: ' + data.toString().trim());
+  console.log('[worker error]: ' + data.toString().trim());
 });
 
 worker.on('exit', function (code, signal) {
