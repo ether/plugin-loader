@@ -269,6 +269,7 @@ let loadOfficialPluginsList = async() => {
     repositories.forEach((repository) => {
       repositoryList.push(repository.name)
     })
+    console.log('save official repository list', repositoryList)
 
     const client = await pool.connect();
     const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
@@ -276,7 +277,11 @@ let loadOfficialPluginsList = async() => {
     client.release();
   }
 
-  Promise.all(promises).then(responses => processRepositoryList(responses[0].concat(responses[1])));
+  Promise.all(promises).then(responses => {
+    processRepositoryList(responses[0].concat(responses[1]))
+
+    scheduleNextLoadingOfficialPluginList()
+  });
 }
 
 /**
@@ -295,7 +300,7 @@ let scheduleNextLoadingOfficialPluginList = async() => {
   let timeNextUpdate = 1000 * 60 * 60 * 24 - (Date.now() - officialPluginList.date_modified)
   console.log('Next update of official plugin list: ' + (timeNextUpdate / 1000) + 's')
 
-  setInterval(loadOfficialPluginsList, timeNextUpdate);
+  setTimeout(loadOfficialPluginsList, timeNextUpdate);
 }
 
 scheduleNextLoadingOfficialPluginList();
