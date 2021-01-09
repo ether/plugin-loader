@@ -269,19 +269,17 @@ let loadOfficialPluginsList = async() => {
     repositories.forEach((repository) => {
       repositoryList.push(repository.name)
     })
-    console.log('save official repository list', repositoryList)
+    console.log('save official repository list')
 
     const client = await pool.connect();
-    const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
+    const query = `UPDATE data SET value=$1, date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
     await client.query(query, [repositoryList]);
     client.release();
-  }
-
-  Promise.all(promises).then(responses => {
-    processRepositoryList(responses[0].concat(responses[1]))
 
     scheduleNextLoadingOfficialPluginList()
-  });
+  }
+
+  Promise.all(promises).then(responses => processRepositoryList(responses[0].concat(responses[1])));
 }
 
 /**
