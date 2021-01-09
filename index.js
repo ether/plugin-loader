@@ -32,7 +32,7 @@ app.listen(PORT, () => {
   console.log(`Example app listening at http://localhost:${PORT}`)
 })
 
-const worker = spawn('node', ['worker.js']);
+let worker = spawn('node', ['worker.js']);
 worker.stdout.on('data', function(data) {
   console.log('worker: ' + data.toString().trim());
 });
@@ -44,4 +44,6 @@ worker.stderr.on('data', function(data) {
 worker.on('exit', function (code, signal) {
   console.log('worker process exited with ' +
     `code ${code} and signal ${signal}`);
+  console.log('Respawn worker...')
+  worker = spawn('node', ['worker.js']);
 });
