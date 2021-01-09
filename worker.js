@@ -272,8 +272,8 @@ let loadOfficialPluginsList = async() => {
     console.log('save official repository list')
 
     const client = await pool.connect();
-    const query = `UPDATE data SET value=$1, date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
-    await client.query(query, [repositoryList]);
+    const query = `UPDATE data SET value=($1), date_modified=CURRENT_TIMESTAMP WHERE id = 'ether_repositories'`;
+    await client.query(query, [JSON.stringify(repositoryList)]);
     client.release();
 
     scheduleNextLoadingOfficialPluginList()
