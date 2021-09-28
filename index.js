@@ -22,9 +22,25 @@ let getPluginData = async () => {
   return result.rows[0].value
 }
 
+let getSyncStats = async () => {
+  const client = await pool.connect();
+  const result = await client.query(`SELECT value, date_modified FROM data WHERE id = 'sequence'`);
+  client.release();
+  return result.rows[0]
+}
+
 app.get('/plugins.full.json', async (req, res) => {
   try {
     res.json(await getPluginData())
+  } catch (err) {
+    console.error(err);
+    res.send("Error " + err);
+  }
+})
+
+app.get('/stats', async (req, res) => {
+  try {
+    res.json(await getSyncStats())
   } catch (err) {
     console.error(err);
     res.send("Error " + err);
