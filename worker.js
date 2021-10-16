@@ -33,7 +33,7 @@ let dataHandler = (change, done) => {
     start = new Date();
   }
 
-  if (change.id.substr(0, 3) === 'ep_' || true) {
+  if (change.id.substr(0, 3) === 'ep_') {
     console.log('Found change in plugin: ' + change.id)
     loadChangesWithDocs(change.seq)
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
