@@ -198,7 +198,7 @@ let startStream = async () => {
   console.log('Load from: ' + sequence)
   let configOptions = {
     db: 'https://replicate.npmjs.com/registry/_changes',
-    include_docs: true,
+    include_docs: false,
     sequence: (seq, cb) => {
       saveInDb(seq, cb)
     },
