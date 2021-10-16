@@ -65,8 +65,9 @@ let loadChangesWithDocs = (seq) => {
 
     const change = body.results[0];
     let data = Normalize(change.doc)
+    let name = change.doc.name
 
-    console.log(change.doc.name)
+    console.log(name)
 
     persistPlugins(function (plugins) {
       if (data.versions[data['dist-tags'].latest].deprecated) {
