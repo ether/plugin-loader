@@ -33,37 +33,9 @@ let dataHandler = (change, done) => {
     start = new Date();
   }
 
-  if (change.doc && change.doc.name) {
-    let name = change.doc.name;
-    if (name.substr(0, 3) === 'ep_') {
-      let data = Normalize(change.doc);
-
-      console.log(change.doc.name);
-
-      persistPlugins(function (plugins) {
-        if (data.versions[data['dist-tags'].latest].deprecated) {
-          delete plugins[name];
-          return plugins;
-        }
-
-        if (!(name in plugins)) {
-          plugins[name] = {
-            name: name,
-          }
-        }
-
-        plugins[name]['description'] = '' + data.description;
-        plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
-        plugins[name]['version'] = '' + data['dist-tags'].latest;
-        if (!plugins[name].hasOwnProperty('official')) {
-          plugins[name]['official'] = false;
-        }
-        plugins[name]['data'] = data;
-        return plugins;
-      }, done);
-    } else {
-      done();
-    }
+  if (change.id.substr(0, 3) === 'ep_' || true) {
+    console.log('Found change in plugin: ' + change.id)
+    loadChangesWithDocs(change.seq)
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
 
@@ -74,6 +46,51 @@ let dataHandler = (change, done) => {
   } else {
     done();
   }
+}
+
+let loadChangesWithDocs = (seq) => {
+  seq = seq - 1;
+  let options = {
+    url: 'https://replicate.npmjs.com/registry/_changes?descending=false&limit=1&since=' + seq + '&include_docs=true',
+    json: true
+  }
+
+  console.log('Loading plugin changes with seq: ' + seq)
+
+  request(options, function(error, response, body) {
+    if (error || body.error) {
+      console.log(error, response)
+      return
+    }
+
+    const change = body.results[0];
+    let data = Normalize(change.doc)
+
+    console.log(change.doc.name)
+
+    persistPlugins(function (plugins) {
+      if (data.versions[data['dist-tags'].latest].deprecated) {
+        delete plugins[name];
+        return plugins;
+      }
+
+      if (!(name in plugins)) {
+        plugins[name] = {
+          name: name,
+        }
+      }
+
+      plugins[name]['description'] = '' + data.description;
+      plugins[name]['time'] = '' + (new Date(data.time[data['dist-tags'].latest])).toISOString().split('T')[0];
+      plugins[name]['version'] = '' + data['dist-tags'].latest;
+      if (!plugins[name].hasOwnProperty('official')) {
+        plugins[name]['official'] = false;
+      }
+      plugins[name]['data'] = data;
+      return plugins;
+    });
+  });
+
 }
 
 let loadDownloadStats = function(pluginList) {
