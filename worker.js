@@ -35,7 +35,7 @@ let dataHandler = (change, done) => {
 
   if (change.id.substr(0, 3) === 'ep_') {
     console.log('Found change in plugin: ' + change.id)
-    loadChangesWithDocs(change.seq)
+    loadChangesWithDocs(change.seq, done)
   } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
 
@@ -48,7 +48,7 @@ let dataHandler = (change, done) => {
   }
 }
 
-let loadChangesWithDocs = (seq) => {
+let loadChangesWithDocs = (seq, cb) => {
   seq = seq - 1;
   let options = {
     url: 'https://replicate.npmjs.com/registry/_changes?descending=false&limit=1&since=' + seq + '&include_docs=true',
@@ -89,7 +89,7 @@ let loadChangesWithDocs = (seq) => {
       }
       plugins[name]['data'] = data;
       return plugins;
-    });
+    }, cb);
   });
 
 }
