@@ -33,16 +33,16 @@ let dataHandler = (change, done) => {
     start = new Date();
   }
 
-  if (change.id.substr(0, 3) === 'ep_' && change.doc.name) {
-    console.log('Found change in plugin: ' + change.id)
-    loadChangesWithDocs(change.seq, done)
-  } else if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
+  if (change.id.substr(0, 3) === 'ep_' && change.deleted === true) {
     console.log('Delete ' + change.id);
 
     persistPlugins(function (plugins) {
       delete plugins[change.id];
       return plugins;
     }, done);
+  } else if (change.id.substr(0, 3) === 'ep_') {
+    console.log('Found change in plugin: ' + change.id)
+    loadChangesWithDocs(change.seq, done)
   } else {
     done();
   }
